@@ -148,7 +148,7 @@ Create the view `net_sales`.
 	limit 5;
 ```
 |market|net_sales_mln|
-|------|-------------|
+|:----:|:----:|
 |India|210.67|
 |USA|132.05|
 |South Korea|64.01|
