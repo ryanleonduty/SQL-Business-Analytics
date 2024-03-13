@@ -77,7 +77,7 @@ This portfolio emphasizes the strategic application of SQL in business analytics
 
 - Database Views: Created for simplified and efficient retrieval of aggregated sales data.
 
-Create the view `sales_preinv_discount` and store all the data in like a virtual table:
+Create the view `sales_preinv_discount` and store all the data in like a virtual table.
 
 ```sql
 	CREATE  VIEW `sales_preinv_discount` AS
@@ -106,7 +106,7 @@ Create the view `sales_preinv_discount` and store all the data in like a virtual
     		pre.fiscal_year=s.fiscal_year
 ```
 
-Create a view for post invoice deductions: `sales_postinv_discount`:
+Create a view for post invoice deductions: `sales_postinv_discount`.
 
 ```sql
 	CREATE VIEW `sales_postinv_discount` AS
@@ -125,7 +125,7 @@ Create a view for post invoice deductions: `sales_postinv_discount`:
    		po.date = s.date;
 ```
 
-Create the view `net_sales`:
+Create the view `net_sales`.
 
 ```sql
 	CREATE VIEW `net_sales` AS
@@ -135,7 +135,7 @@ Create the view `net_sales`:
 	FROM gdb041.sales_postinv_discount;
 ```
 
-- Get top 5 market by net sales in fiscal year 2021:
+- Get top 5 market by net sales in fiscal year 2021.
 
 ```sql
 	SELECT 
@@ -150,7 +150,7 @@ Create the view `net_sales`:
 
 - Window Functions: Utilized for ranking and comparative analysis to identify top-performing products and customer segments.
 
-Find out customer-wise net sales percentage contribution:
+Find out customer-wise net sales percentage contribution.
 
 ```sql
 	with cte1 as (
@@ -170,7 +170,7 @@ Find out customer-wise net sales percentage contribution:
 	order by region, pct_share_region desc
 ```
 
-Find out top 3 products from each division by total quantity sold in a given year:
+Find out top 3 products from each division by total quantity sold in a given year.
 
 ```sql
 	with cte1 as 
@@ -202,14 +202,111 @@ Find out top 3 products from each division by total quantity sold in a given yea
 
 - Database Triggers: Automated the synchronization of actual sales and forecast data, ensuring data integrity and timeliness.
 
-```sql
+Create a Helper Table.
 
+```sql
+create fact_act_est table
+	drop table if exists fact_act_est;
+
+	create table fact_act_est
+	(
+        	select 
+                    s.date as date,
+                    s.fiscal_year as fiscal_year,
+                    s.product_code as product_code,
+                    s.customer_code as customer_code,
+                    s.sold_quantity as sold_quantity,
+                    f.forecast_quantity as forecast_quantity
+        	from 
+                    fact_sales_monthly s
+        	left join fact_forecast_monthly f 
+        	using (date, customer_code, product_code)
+	)
+	union
+	(
+        	select 
+                    f.date as date,
+                    f.fiscal_year as fiscal_year,
+                    f.product_code as product_code,
+                    f.customer_code as customer_code,
+                    s.sold_quantity as sold_quantity,
+                    f.forecast_quantity as forecast_quantity
+        	from 
+		    fact_forecast_monthly  f
+        	left join fact_sales_monthly s 
+        	using (date, customer_code, product_code)
+	);
+
+	update fact_act_est
+	set sold_quantity = 0
+	where sold_quantity is null;
+
+	update fact_act_est
+	set forecast_quantity = 0
+	where forecast_quantity is null;
+```
+
+Create the trigger to automatically insert record in `fact_act_est` table whenever insertion happens in `fact_sales_monthly`.
+
+```sql
+	CREATE DEFINER=CURRENT_USER TRIGGER `fact_sales_monthly_AFTER_INSERT` AFTER INSERT ON `fact_sales_monthly` FOR EACH ROW 
+	BEGIN
+        	insert into fact_act_est 
+                        (date, product_code, customer_code, sold_quantity)
+    		values (
+                	NEW.date, 
+        		NEW.product_code, 
+        		NEW.customer_code, 
+        		NEW.sold_quantity
+    		 )
+    		on duplicate key update
+                         sold_quantity = values(sold_quantity);
+	END
+```
+
+Create the trigger to automatically insert record in `fact_act_est` table whenever insertion happens in `fact_forecast_monthly`.
+
+```sql
+	CREATE DEFINER=CURRENT_USER TRIGGER `fact_forecast_monthly_AFTER_INSERT` AFTER INSERT ON `fact_forecast_monthly` FOR EACH ROW 
+	BEGIN
+        	insert into fact_act_est 
+                        (date, product_code, customer_code, forecast_quantity)
+    		values (
+                	NEW.date, 
+        		NEW.product_code, 
+        		NEW.customer_code, 
+        		NEW.forecast_quantity
+    		 )
+    		on duplicate key update
+                         forecast_quantity = values(forecast_quantity);
+	END
 ```
 
 - Forecast Accuracy Assessment: Employed temporary tables and CTEs for evaluating the precision of sales forecasts against actual sales data.
 
 ```sql
-
+	with forecast_err_table as (
+             select
+                  s.customer_code as customer_code,
+                  c.customer as customer_name,
+                  c.market as market,
+                  sum(s.sold_quantity) as total_sold_qty,
+                  sum(s.forecast_quantity) as total_forecast_qty,
+                  sum(s.forecast_quantity-s.sold_quantity) as net_error,
+                  round(sum(s.forecast_quantity-s.sold_quantity)*100/sum(s.forecast_quantity),1) as net_error_pct,
+                  sum(abs(s.forecast_quantity-s.sold_quantity)) as abs_error,
+                  round(sum(abs(s.forecast_quantity-sold_quantity))*100/sum(s.forecast_quantity),2) as abs_error_pct
+             from fact_act_est s
+             join dim_customer c
+             on s.customer_code = c.customer_code
+             where s.fiscal_year=2021
+             group by customer_code
+	)
+	select 
+            *,
+            if (abs_error_pct > 100, 0, 100.0 - abs_error_pct) as forecast_accuracy
+	from forecast_err_table
+        order by forecast_accuracy desc;
 ```
 
 **Business Implications:**
