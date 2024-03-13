@@ -10,6 +10,16 @@ This portfolio emphasizes the strategic application of SQL in business analytics
 **SQL Highlights:**
 
 - User-Defined Functions: Created to dynamically calculate fiscal years, enhancing the flexibility and accuracy of financial reporting.
+```
+	CREATE FUNCTION `get_fiscal_year`(calendar_date DATE) 
+	RETURNS int
+    	DETERMINISTIC
+	BEGIN
+        	DECLARE fiscal_year INT;
+        	SET fiscal_year = YEAR(DATE_ADD(calendar_date, INTERVAL 4 MONTH));
+        	RETURN fiscal_year;
+	END
+```
 - Complex Reporting: Generated detailed sales transaction reports using advanced JOIN operations and conditional aggregation to understand sales trends.
 
 **Steps & Business Implications:**
