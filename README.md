@@ -148,7 +148,7 @@ Create the view `net_sales`.
 	limit 5;
 ```
 |market|net_sales_mln|
-|:----:|:----:|
+|:----|----:|
 |India|210.67|
 |USA|132.05|
 |South Korea|64.01|
@@ -158,6 +158,33 @@ Create the view `net_sales`.
 - Window Functions: Utilized for ranking and comparative analysis to identify top-performing products and customer segments.
 
 Find out customer-wise net sales percentage contribution.
+
+```sql
+	with cte1 as (
+		select 
+                    customer, 
+                    round(sum(net_sales)/1000000,2) as net_sales_mln
+        	from net_sales s
+        	join dim_customer c
+                    on s.customer_code=c.customer_code
+        	where s.fiscal_year=2021
+        	group by customer)
+	select 
+            *,
+            net_sales_mln*100/sum(net_sales_mln) over() as pct_net_sales
+	from cte1
+	order by net_sales_mln desc
+	LIMIT 5;
+```
+|customer|net_sales_mln|pct_net_sales|
+|:----|----:|----:|
+|Amazon|109.03|13.233402|
+|Atliq Exclusive|79.92|9.700206|
+|Atliq e Store|70.31|8.533803|
+|Sage|27.07|3.285593|
+|Flipkart|25.25|3.064692|
+
+Find customer-wise net sales distribution per region for FY 2021.
 
 ```sql
 	with cte1 as (
@@ -174,8 +201,17 @@ Find out customer-wise net sales percentage contribution.
              *,
              net_sales_mln*100/sum(net_sales_mln) over (partition by region) as pct_share_region
 	from cte1
-	order by region, pct_share_region desc;
+	order by region, pct_share_region desc
+	LIMIT 5;
 ```
+
+|customer|region|net_sales_mln|pct_share_region|
+|:----|:----|----:|----:|
+|Amazon|APAC|57.41|12.988688|
+|Atliq Exclusive|APAC|51.58|11.669683|
+|Atliq e Store|APAC|36.97|8.364253|
+|Leader|APAC|24.52|5.547511|
+|Sage|APAC|22.85|5.169683|
 
 Find out top 3 products from each division by total quantity sold in a given year.
 
@@ -198,6 +234,18 @@ Find out top 3 products from each division by total quantity sold in a given yea
 	select * from cte2 where drnk <= 3;
 ```
 
+|division|product|total_qty|drnk|
+|:----|:----|----:|:----:|
+|N & S|AQ Pen Drive DRC|2034569|1|
+|N & S|AQ Digit SSD|1240149|2|
+|N & S|AQ Clx1|1238683|3|
+|P & A|AQ Gamers Ms|2477098|1|
+|P & A|AQ Maxima Ms|2461991|2|
+|P & A|AQ Master wireless x1 Ms|2448784|3|
+|PC|AQ Digit|135092|1|
+|PC|AQ Gen Y|135031|2|
+|PC|AQ Elite|134431|3|
+
 **Business Implications:**
 
 - Market Segmentation Analysis: Analyzed sales by customer demographics and product preferences, guiding targeted marketing campaigns.
@@ -212,7 +260,6 @@ Find out top 3 products from each division by total quantity sold in a given yea
 Create a Helper Table.
 
 ```sql
-create fact_act_est table
 	drop table if exists fact_act_est;
 
 	create table fact_act_est
@@ -313,8 +360,22 @@ Create the trigger to automatically insert record in `fact_act_est` table whenev
             *,
             if (abs_error_pct > 100, 0, 100.0 - abs_error_pct) as forecast_accuracy
 	from forecast_err_table
-        order by forecast_accuracy desc;
+        order by forecast_accuracy desc
+	LIMIT 10;
 ```
+
+|customer_code|customer_name|market|total_sold_qty|total_forecast_qty|net_error|net_error_pct|abs_error|abs_error_pct|forecast_accuracy|
+|:----|:----|:----|----:|----:|----:|----:|----:|----:|----:|
+|90025209|Electricalsbea Stores|Columbia|13178|15428|2065|13.4|8051|52.18|47.82|
+|90013120|Coolblue|Italy|109547|133532|23944|17.9|70378|52.70|47.30|
+|70010048|Atliq e Store|Bangladesh|119439|142010|22547|15.9|75645|53.27|46.73|
+|90023027|Costco|Canada|236189|279962|43760|15.6|149274|53.32|46.68|
+|70027208|Atliq e Store|Brazil|33713|47321|13342|28.2|25398|53.67','46.33|
+|90023026|Relief|Canada|228988|273492|44495|16.3|146921|53.72|46.28|
+|90017051|Forward Stores|Portugal|86823|118067|31151|26.4|63449|53.74|46.26|
+|90017058|Mbit|Portugal|86860|110195|23242|21.1|59348|53.86|46.14|
+|90023028|walmart|Canada|239081|283323|44233|15.6|153039|54.02|45.98|
+|90023024|Sage|Canada|246397|287233|40835|14.2|155585|54.17|45.83|
 
 **Business Implications:**
 
@@ -327,7 +388,7 @@ Create the trigger to automatically insert record in `fact_act_est` table whenev
 - Top Customers, Products, and Markets: Supported targeted marketing and product development strategies based on customer behavior and product performance insights.
 - Supply Chain Analytics: Improved supply chain resilience and responsiveness through enhanced forecast accuracy and operational efficiency.
 
-## Technologies and Techniques Used
+## Technologies Used
 
 - MySQL: For executing SQL queries and managing database objects.
 - Advanced SQL Techniques: Including triggers, window functions, and user-defined functions, showcasing an adept ability to tackle complex analytical tasks efficiently.
