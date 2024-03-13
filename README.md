@@ -103,7 +103,7 @@ Create the view `sales_preinv_discount` and store all the data in like a virtual
     		AND g.product_code=s.product_code
 	JOIN fact_pre_invoice_deductions as pre
         	ON pre.customer_code = s.customer_code AND
-    		pre.fiscal_year=s.fiscal_year
+    		pre.fiscal_year=s.fiscal_year;
 ```
 
 Create a view for post invoice deductions: `sales_postinv_discount`.
@@ -145,7 +145,7 @@ Create the view `net_sales`.
 	where fiscal_year=2021
 	group by market
 	order by net_sales_mln desc
-	limit 5
+	limit 5;
 ```
 
 - Window Functions: Utilized for ranking and comparative analysis to identify top-performing products and customer segments.
@@ -167,7 +167,7 @@ Find out customer-wise net sales percentage contribution.
              *,
              net_sales_mln*100/sum(net_sales_mln) over (partition by region) as pct_share_region
 	from cte1
-	order by region, pct_share_region desc
+	order by region, pct_share_region desc;
 ```
 
 Find out top 3 products from each division by total quantity sold in a given year.
@@ -188,7 +188,7 @@ Find out top 3 products from each division by total quantity sold in a given yea
                      *,
                      dense_rank() over (partition by division order by total_qty desc) as drnk
                 from cte1)
-	select * from cte2 where drnk<=3
+	select * from cte2 where drnk <= 3;
 ```
 
 **Business Implications:**
