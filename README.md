@@ -69,7 +69,7 @@ This portfolio emphasizes the strategic application of SQL in business analytics
 **Business Implications:**
 
 - Customer Code Retrieval: Identified specific customer segments for targeted financial analysis, supporting focused strategy development.
-- Sales Performance Analysis: Enabled the identification of sales trends and fiscal health, informing revenue management strategies.
+- Sales Performance Analysis: Enabled the identification of sales trends, informing revenue management strategies.
 
 ### Top Customers, Products, and Markets
 
@@ -147,6 +147,13 @@ Create the view `net_sales`.
 	order by net_sales_mln desc
 	limit 5;
 ```
+|market|net_sales_mln|
+|------|-------------|
+|India|210.67|
+|USA|132.05|
+|South Korea|64.01|
+|Canada|45.89|
+|United Kingdom|44.73|
 
 - Window Functions: Utilized for ranking and comparative analysis to identify top-performing products and customer segments.
 
